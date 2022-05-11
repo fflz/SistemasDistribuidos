@@ -23,6 +23,7 @@ import java.net.SocketTimeoutException;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -32,21 +33,24 @@ import javax.swing.JTextPane;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.UnsupportedLookAndFeelException;
+
 import org.json.JSONObject;
 
 public class EchoClient {
     
-    
+    public static void createInterface(){
+        
+    }
     
     public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException {
         
         JFrame f = new JFrame();
         JLabel login = new JLabel("  Login");
-        JLabel username = new JLabel("User:");
-        JLabel password = new JLabel("Pass:");
+        JLabel username = new JLabel("Usuario:");
+        JLabel password = new JLabel("Senha:");
         JTextPane usernameBox = new JTextPane();
         JPasswordField passwordBox = new JPasswordField();
-        JButton botaoCadastro = new JButton("Register");
+        JButton botaoCadastro = new JButton("Registro");
         JButton botaoLogin = new JButton("Login");
         
         
@@ -59,7 +63,7 @@ public class EchoClient {
         password.setBounds(68, 95, 75, 25);
         login.setFont(new Font("Times New Roman",Font.BOLD,20));
         
-        // existence
+        
         f.add(botaoLogin);
         f.add(botaoCadastro);
         f.add(login);
@@ -79,14 +83,13 @@ public class EchoClient {
         }
         
         try (Socket socket = new Socket("localhost", 5000)) {
-            // timeout after 5 seconds
             socket.setSoTimeout(5000);
 
             // Use PrintWriter to create output stream to send server and use BufferedReader to read the stream coming from server
             PrintWriter outputStreamToSendServer = new PrintWriter(socket.getOutputStream(), true);
             BufferedReader serverResponseStream = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-            Scanner s = new Scanner(System.in);
+            Scanner s = new Scanner(System.in); // TODO: remove
             String outputMessage, response;
             
             botaoLogin.addActionListener((ActionListener) new ActionListener() {
@@ -98,8 +101,8 @@ public class EchoClient {
                         String password = String.valueOf(passwordChar);
                         JSONObject jsonObject = new JSONObject();
                         jsonObject.put("protocolo", "100");
-                        jsonObject.put("username", username); // get interface login field
-                        jsonObject.put("password", password); // get interface password field
+                        jsonObject.put("username", username); 
+                        jsonObject.put("password", password); 
                         String resposta;
                         outputStreamToSendServer.println(jsonObject.toString());
                         resposta = serverResponseStream.readLine();
@@ -117,19 +120,65 @@ public class EchoClient {
                 }
             }});
             
-            // Until user enters "exit", send message to server on port 5000
+            botaoCadastro.addActionListener((ActionListener) new ActionListener(){
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                        int success = -1;
+                    
+                        String username = usernameBox.getText();
+                        char[] passwordChar = passwordBox.getPassword();
+                        String password = String.valueOf(passwordChar);
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put("protocolo", "300");
+                        jsonObject.put("username", username); 
+                        jsonObject.put("password", password); 
+                        String resposta;
+                        
+                        outputStreamToSendServer.println(jsonObject.toString());
+                        System.out.println("I sent " + jsonObject.toString());
+                        
+                        String registerLine = serverResponseStream.readLine();
+                        JSONObject registerAnswer = new JSONObject(registerLine);
+                        System.out.println("I received: " + registerAnswer);
+                        System.out.println(registerAnswer);
+                        
+                    switch (registerAnswer.getString("protocolo")) {
+                        case "301" -> { // '->'' java 14 
+                            System.out.println("register successful");
+                            JOptionPane.showMessageDialog(null, "registration done", "Register", 1);
+                        }
+                        case "302" -> {
+                            System.out.println("user already exists");
+                            JOptionPane.showMessageDialog(null, "User already exists", "Register", 1);
+                        }
+                        case "303" -> {
+                            System.out.println("field empty");
+                            JOptionPane.showMessageDialog(null, "blank user field", "Register", 1);
+                        }
+                        default -> {
+                                System.out.println("unk protocol");
+                                JOptionPane.showMessageDialog(null, "?????", "Register", 1);
+                        }
+                    }                      
+                    
+                } catch (IOException ex) {
+                    Logger.getLogger(EchoClient.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+                    
+        });
+            
             do {
-                System.out.println("Enter a message: ");
                 outputMessage = s.nextLine();
                 outputStreamToSendServer.println(outputMessage);
 
-                if (!outputMessage.toLowerCase().equals("exit")) {
+                if (!outputMessage.toLowerCase().equals(null)) {
                     response = serverResponseStream.readLine();
                     System.out.println(response);
                 }
-            } while (!outputMessage.equals("exit"));
+            } while (!outputMessage.equals(null));
 
-            // If user enters exit, grab response stream and print.
             response = serverResponseStream.readLine();
             System.out.println(response);
             
